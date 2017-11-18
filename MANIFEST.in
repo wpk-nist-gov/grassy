@@ -1,0 +1,2 @@
+include grassy/data/*.csv
+include grassy/data/*.csv.gz

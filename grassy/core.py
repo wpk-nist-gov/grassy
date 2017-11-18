@@ -135,8 +135,15 @@ class _Grass(object):
             .sort_values('ID')
         )
 
+    @property
+    @cached()
+    def duplicates(self):
+        m = self.merge_final['Name'].duplicated()
+        v = self.merge_final.loc[m, 'Name'].values
+        return self.merge_final.query('Name in @v')
 
-    def plot_data(self, ax=None, ybounds=(-3.0, 3.0)):
+
+    def plot_control(self, ax=None):
         if ax is None:
             fig, ax = plt.subplots(figsize=(10,3))
 
@@ -149,10 +156,10 @@ class _Grass(object):
 
 
         ax.axhline(y=0, color='k')
-        ax.axhline(y=ybounds[0], color='r', ls=':')
-        ax.axhline(y=ybounds[1], color='r', ls=':')
+        ax.axhline(y=-3.0, color='r', ls=':')
+        ax.axhline(y=+3.0, color='r', ls=':')
         trans = mtransforms.blended_transform_factory(ax.transAxes, ax.transData)
-        ax.fill_between([0, 1], [ybounds[0]]*2, [ybounds[1]]*2, transform=trans, color='g', alpha=0.25)
+        ax.fill_between([0, 1], [-2.0]*2, [+2.0]*2, transform=trans, color='g', alpha=0.25)
 
         ax.errorbar(x=np.arange(len(t)), y=t['y'], yerr=t['dy'], linestyle='None', marker='o')
         _ = ax.set_xticks(np.arange(len(t)))
@@ -161,3 +168,58 @@ class _Grass(object):
         ax.set_xlabel('Analyte')
         ax.set_ylabel('Coverage Equivalent (k-eq)')
         return ax
+
+    
+
+    @classmethod
+    def from_csv(cls, path, srm, read_kws=None, **kwargs):
+        read_kws = read_kws or {}
+        df = pd.read_csv(path, **read_kws)
+        return cls(df, srm=srm, **kwargs)
+
+    def summary(self, plt_kws=None):
+        import datetime, os, pwd
+        from IPython.display import display, Markdown
+
+        header = _header_template.format(
+            date=str(datetime.datetime.now()),
+            user=pwd.getpwuid(os.getuid())[0],
+            srm=self.srm,
+            srm_num=self.srm.split()[-1]
+        )
+
+        disp = lambda x: display(Markdown(x))
+        disp(header)
+
+        plt_kws = plt_kws or {}
+        self.plot_control(**plt_kws)
+        plt.show()
+
+        legend = _legend_template.format(srm=self.srm)
+        disp(legend)
+
+        disp("## SRM Accuracy summary")
+        display(self.merge_final)
+
+        disp("## Duplicates")
+        display(self.duplicates)
+
+
+
+_header_template="""# Feature reduction assistant for metabalomics
+### NIST Marine ESB Data Tool Development
+### FRAMey v0.1: last update November 2017
+
+---
+
+* Timestamp: {date}
+* User: {user}
+
+* <a href="https://www-s.nist.gov/srmors/certificates/view_certPDF.cfm?certificate={srm_num}" target="_blank">{srm}</a>
+---
+"""
+
+_legend_template = """**Figure 1:** Accuracy assessment of batch XXXXX for {srm}.  Values are presented as normalized coverage equivalents at the mean (dots) and 1sd (error bars) of measurements, overlaid onto the certificate value (blue line) and uncertainty (green~95% coverage, red~99% coverage).
+
+---
+"""
