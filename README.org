@@ -1,0 +1,23 @@
+#+TITLE: Graphical Accuracy for SRMs QA Tool 
+
+* Example usage
+
+See [[file:examples/working_example.ipynb][example notebook]]
+
+* Installation
+
+#+BEGIN_SRC 
+conda install anaconda
+pip install -U git+https://github.com/wpk-nist-gov/grassy.git@develop
+#+END_SRC
+
+ - Note that the pip install doesn't handle requirements.  This is on purpose for now. 
+The anaconda distribution has everything you need.  
+ - The package should work with python 2.7 or 3.6
+
+
+* TODO
+
+ - Better matching of names (take a look at fuzzy matching https://stackoverflow.com/questions/13636848/is-it-possible-to-do-fuzzy-match-merge-with-python-pandas)
+ 
+ - Nothing is done regarding Mass vs Volume right now.  Will incorporate soon.
