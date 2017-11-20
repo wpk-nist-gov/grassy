@@ -3,8 +3,6 @@
 from __future__ import print_function, absolute_import, division
 from builtins import *
 
-import os
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,68 +11,64 @@ import matplotlib.transforms as mtransforms
 
 from .cached_decorators import cached_clear, cached
 
-def _get_path(rel_path):
-    """get absolute path from path relative to package"""
-    this_dir, this_file = os.path.split(os.path.abspath(__file__))
-    return os.path.join(this_dir, rel_path)
-
-# load data:
-def _get_data():
-    # alias:
-    df_alias = pd.read_csv(_get_path('data/alias.csv.gz'), index_col=0).reset_index()
-    df_srm = pd.read_csv(_get_path('data/srm_values.csv'), index_col=0)
-    df_cert = pd.read_csv(_get_path('data/certlist.csv'), index_col=0)
-
-    return df_alias, df_srm, df_cert
-
-_df_alias, _df_srm, _df_cert = _get_data()
+from .load_data import _df_alias, _df_srm, _df_cert
 
 
+class Grass(object):
 
-class _Grass(object):
-
-    def __init__(self, data, srm, alias=None, srm_values=None, cert=None):
+    def __init__(self, data_raw, srm_name, alias=None, srm_values=None):
+        """
+        Parameters
+        ----------
+        data_raw : pd.DataFrame
+            data_raw data
+        srm_name : str
+            name of srm
+        alias : pd.DataFrame, optional
+            frame with alias info. 
+        srm_values : pd.DataFrame, optional
+            frame with srm data.
+        """
         # set frames
         self._df_alias = alias or _df_alias
         self._df_srm_values = srm_values or _df_srm
-        self._df_cert = cert or _df_cert
 
         # set srm
-        self.srm = srm
+        self.srm_name = srm_name
 
-        # set data
-        self.data = data
+        # set data_raw
+        self.data_raw = data_raw
 
 
     @property
-    def srm(self):
-        return self._srm
+    def srm_name(self):
+        return self._srm_name
 
-    @srm.setter
+    @srm_name.setter
     @cached_clear()
-    def srm(self, val):
+    def srm_name(self, val):
         srms = self._df_srm_values['SRM'].unique()
         if val not in srms:
             raise ValueError('srm must be in %s'%srms)
-        self._srm = val
+        self._srm_name = val
 
 
     @property
-    def data(self):
-        return self._data
+    def data_raw(self):
+        return self._data_raw
 
-    @data.setter
+    @data_raw.setter
     @cached_clear()
-    def data(self, val):
+    def data_raw(self, val):
         assert isinstance(val, pd.DataFrame)
-        self._data = val.assign(ID=lambda x: np.arange(len(x)))
+        self._data_raw = val.assign(ID=lambda x: np.arange(len(x)))
 
 
     @property
     def data_agg(self):
         """aggregated stats on data"""
         return (
-            self.data
+            self.data_raw
             .pipe(pd.melt, id_vars=['Name','ID'])
             .groupby(['Name','ID'],as_index=False)['value']
             .agg(['mean','std'])
@@ -87,7 +81,7 @@ class _Grass(object):
     @cached()
     def srm_values(self):
         """limited set of srm values"""
-        val = self.srm
+        val = self.srm_name
         return (
             self._df_srm_values
             .query('SRM == @val')
@@ -172,10 +166,13 @@ class _Grass(object):
     
 
     @classmethod
-    def from_csv(cls, path, srm, read_kws=None, **kwargs):
+    def from_csv(cls, path, srm_name, read_kws=None, **kwargs):
         read_kws = read_kws or {}
         df = pd.read_csv(path, **read_kws)
-        return cls(df, srm=srm, **kwargs)
+        return cls(df, srm_name=srm_name, **kwargs)
+
+
+
 
     def summary(self, plt_kws=None):
         import datetime, os, pwd
@@ -184,8 +181,8 @@ class _Grass(object):
         header = _header_template.format(
             date=str(datetime.datetime.now()),
             user=pwd.getpwuid(os.getuid())[0],
-            srm=self.srm,
-            srm_num=self.srm.split()[-1]
+            srm_name=self.srm_name,
+            srm_num=self.srm_name.split()[-1]
         )
 
         disp = lambda x: display(Markdown(x))
@@ -195,7 +192,7 @@ class _Grass(object):
         self.plot_control(**plt_kws)
         plt.show()
 
-        legend = _legend_template.format(srm=self.srm)
+        legend = _legend_template.format(srm_name=self.srm_name)
         disp(legend)
 
         disp("## SRM Accuracy summary")
@@ -208,18 +205,18 @@ class _Grass(object):
 
 _header_template="""# Feature reduction assistant for metabalomics
 ### NIST Marine ESB Data Tool Development
-### FRAMey v0.1: last update November 2017
+### FRAMey 0.0.1: last update November 2017
 
 ---
 
 * Timestamp: {date}
 * User: {user}
 
-* <a href="https://www-s.nist.gov/srmors/certificates/view_certPDF.cfm?certificate={srm_num}" target="_blank">{srm}</a>
+* <a href="https://www-s.nist.gov/srmors/certificates/view_certPDF.cfm?certificate={srm_num}" target="_blank">{srm_name}</a>
 ---
 """
 
-_legend_template = """**Figure 1:** Accuracy assessment of batch XXXXX for {srm}.  Values are presented as normalized coverage equivalents at the mean (dots) and 1sd (error bars) of measurements, overlaid onto the certificate value (blue line) and uncertainty (green~95% coverage, red~99% coverage).
+_legend_template = """**Figure 1:** Accuracy assessment of batch XXXXX for {srm_name}.  Values are presented as normalized coverage equivalents at the mean (dots) and 1sd (error bars) of measurements, overlaid onto the certificate value (blue line) and uncertainty (green~95% coverage, red~99% coverage).
 
 ---
 """
