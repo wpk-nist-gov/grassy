@@ -7,7 +7,7 @@ See [[file:examples/working_example.ipynb][example notebook]]
 * Installation
 
 #+BEGIN_SRC 
-conda install anaconda
+conda install anaconda fuzzywuzzy
 pip install -U git+https://github.com/wpk-nist-gov/grassy.git@develop
 #+END_SRC
 
