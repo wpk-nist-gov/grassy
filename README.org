@@ -16,15 +16,11 @@ The anaconda distribution has everything you need.
  - The package should work with python 2.7 or 3.6
 
 
-* To do items 
-** DONE Better matching of names
-   CLOSED: [2017-11-22 Wed 09:39]
-** Handle mass/volume 
-*** DONE return all options
-    CLOSED: [2017-11-22 Wed 09:40]
-*** TODO propt mass/volume selection
-
-** TODO Catch the additional coeluting species and combine the values
-   - Advice from Jared 
+* To do items [1/4] 
+  - [ ] Better matching of names
+  - [X] all mass/volume matches
+  - [ ] propt mass/volume selection
+  - [ ] Catch the additional coeluting species and combine the values
+   -  Advice from Jared 
 
 
